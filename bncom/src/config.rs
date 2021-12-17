@@ -1,14 +1,15 @@
-
-use std::io::Read;
-use std::fs::File;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::Read;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Server {
     pub key: String,
     pub port: u16,
     #[serde(rename = "-limit-port")]
-    pub _limit_port: Option::<(u16, u16)>,
+    pub _limit_port: Option<(u16, u16)>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -24,36 +25,44 @@ pub struct Client {
     pub map: Vec<Iomap>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
-    pub server: Option::<Server>,
-    pub client: Option::<Client>,
+    pub server: Option<Server>,
+    pub client: Option<Client>,
 }
 
 impl Config {
-    pub fn from_str(js: &str) -> Result<Config, serde_json::Error> {
-        let p = serde_json::from_str(js);
-        match p {
-            Ok(c) => {
-                let h: Config = c;
-                Ok(h)
-            },
-            Err(e)=>{
-                Err(e)
+    pub fn from_str(js: &str) -> Option<Config> {
+        let mut res: Option<Config> = match serde_json::from_str(js) {
+            Ok(cfg) => Some(cfg),
+            Err(e) => {
+                panic!("error {}", e);
+            }
+        };
+        // 加密key
+        if let Some(k) = &mut res {
+            let mut hasher = DefaultHasher::new();
+            if let Some(s) = &mut k.server {
+                hasher.write(&s.key.as_bytes());
+                s.key = format!("{:x}", hasher.finish());
+            }
+            if let Some(c) = &mut k.client {
+                hasher.write(&c.key.as_bytes());
+                c.key = format!("{:x}", hasher.finish());
             }
         }
+        return res;
     }
 
-    pub fn from_file(filename: &str) -> Result<Config, serde_json::Error> {
+    pub fn from_file(filename: &str) -> Option<Config> {
         let f = File::open(filename);
         match f {
             Ok(mut file) => {
                 let mut c = String::new();
                 file.read_to_string(&mut c).unwrap();
                 Config::from_str(&c)
-            },
-            Err(e)=>{
+            }
+            Err(e) => {
                 panic!("error {}", e)
             }
         }
@@ -77,7 +86,6 @@ fn test_from_str() {
     if let Some(v) = c.client {
         panic!("{:?}", v);
     }
-
 
     let js = r#"{
         "server": {
@@ -109,7 +117,6 @@ fn test_from_str() {
         panic!("{:?}", v);
     }
     assert_eq!(c.client.unwrap().map[0].outer, 9100);
-
 }
 
 #[test]
@@ -117,7 +124,7 @@ fn test_from_file() {
     let c = Config::from_file("config.json").unwrap();
     assert_eq!(c.server.as_ref().unwrap()._limit_port, Some((9100, 9110)));
     assert_eq!(c.client.as_ref().unwrap().map[0].outer, 9100);
-    
+
     let s = serde_json::to_string(&c).expect("Couldn't serialize config");
     assert_eq!(s.contains("9110"), true);
 }

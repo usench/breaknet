@@ -1,6 +1,4 @@
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::hash::Hasher;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
@@ -55,10 +53,7 @@ pub async fn ever_handle(client: bncom::config::Client) {
     match conn {
         Ok(mut con) => {
             // 发送START指令
-            let mut sjson = client.clone();
-            let mut hasher = DefaultHasher::new();
-            hasher.write(sjson.key.as_bytes());
-            sjson.key = format!("{:x}", hasher.finish());
+            let sjson = client.clone();
             let json_str = serde_json::to_string(&sjson).expect("Json error");
             let info = json_str.as_bytes();
             let info_len = info.len() as u64;

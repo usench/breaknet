@@ -1,5 +1,3 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
 use crate::slab::Slab;
 use std::clone::Clone;
 use std::collections::LinkedList;
@@ -131,7 +129,9 @@ async fn work_for_client(
                 // 通知客户端新连接到了
                 let i = son_session.push(stream).await;
                 if i != 0 {
-                    sdr.send([bncom::_const::NEWSOCKET, p1, p2, i as u8]).await.unwrap();
+                    sdr.send([bncom::_const::NEWSOCKET, p1, p2, i as u8])
+                        .await
+                        .unwrap();
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -211,9 +211,7 @@ async fn do_start(
         }
         return;
     }
-    let mut hasher = DefaultHasher::new();
-    hasher.write(&cfg.key.as_bytes());
-    if p.key != format!("{:x}", hasher.finish()) {
+    if p.key != cfg.key {
         println!("Password error => {}", p.key);
         if let Err(e) = stream.write_all(&[bncom::_const::ERROR_PWD]).await {
             println!("error {}", e);
