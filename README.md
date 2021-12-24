@@ -16,15 +16,15 @@ Mapping intranet address to public network
 
 ## build
 
-`cargo build`
+`cargo build --release`
 
 ## Server
 
-`./target/debug/bnserver ./bnserver/config.json`
+`./target/release/bnserver ./bnserver/config.json`
 
 ## Client
 
-`./target/debug/bnclient ./bnclient/config.json`
+`./target/release/bnclient ./bnclient/config.json`
 
 ## Server config
 

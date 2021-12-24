@@ -1,8 +1,11 @@
 // pub const BUFF_SIZE: usize = 2048;
 // SESSION_MAX 最大会话数量
 pub const SESSION_MAX: usize = 1<<16;
-// 每个session待连接数组，最大不超过256
-pub const SESSION_CAP: usize = 10;
+
+// SESSION_CAP 掩码,必须字节全1，例如0b1 0b11 0b111 0b1111...
+pub const SESSION_CAP_MASK: usize = 0b111;
+// 每个session待连接数组
+pub const SESSION_CAP: usize = SESSION_CAP_MASK + 1;
 
 // START 第一次连接服务器
 pub const START: u8 = 1;

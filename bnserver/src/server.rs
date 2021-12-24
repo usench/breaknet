@@ -36,19 +36,16 @@ impl Session {
         Session {
             using: Arc::new(AtomicBool::new(true)),
             outcons: vca,
-            next: Mutex::new(1),
+            next: Mutex::new(0),
             port,
         }
     }
-    async fn push(&self, conn: TcpStream) -> usize {
+    async fn push(&self, conn: TcpStream) -> Option<usize> {
         let mut count = 0;
-        while count < bncom::_const::SESSION_CAP {
+        loop {
             let mut next = self.next.lock().await;
-            let key = *next;
+            let key = (*next) & bncom::_const::SESSION_CAP_MASK;
             *next += 1;
-            if *next >= bncom::_const::SESSION_CAP {
-                *next = 1;
-            }
             let mut u = self.outcons[key].lock().await;
             let start = SystemTime::now();
             let since_the_epoch = start.duration_since(UNIX_EPOCH).unwrap();
@@ -63,16 +60,18 @@ impl Session {
                     }
                     u.conn = Some(conn);
                     u.start = cur;
-                    return key;
+                    return Some(key);
                 }
             } else {
                 u.conn = Some(conn);
                 u.start = cur;
-                return key;
+                return Some(key);
             }
             count += 1;
+            if count >= bncom::_const::SESSION_CAP {
+                return None;
+            }
         }
-        return 0;
     }
     // 关闭Session
     async fn close(sf: &Session) {
@@ -127,8 +126,7 @@ async fn work_for_client(
         match apt {
             Ok((stream, _)) => {
                 // 通知客户端新连接到了
-                let i = son_session.push(stream).await;
-                if i != 0 {
+                if let Some(i) = son_session.push(stream).await {
                     sdr.send([bncom::_const::NEWSOCKET, p1, p2, i as u8])
                         .await
                         .unwrap();
