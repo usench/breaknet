@@ -4,7 +4,7 @@ Mapping intranet address to public network
 
 ```text
 +--------------+           |                 +--------+
-|Public network|<----------|---------------->|Intranet|
+|Public network|<----------X---------------->|Intranet|
 +--------------+           |                 +--------+
       A                    |                    A
       |                   NAT                   |
